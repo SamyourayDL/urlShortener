@@ -5,6 +5,10 @@ import (
 	"log/slog"
 	"os"
 	"url-shortener/internals/config"
+	"url-shortener/internals/storage/sqlite"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 )
 
 const (
@@ -20,9 +24,18 @@ func main() {
 	log := SetupLogger(cfg.Env)
 	log.Info("Logger succesfully setuped", "Env", cfg.Env)
 	log.Debug("Debug messages are enabled")
-	//init storage
 
-	//init router
+	storage, err := sqlite.New(cfg.StoragePath)
+	if err != nil {
+		log.Error("Failed to init Storage", "err", err)
+		os.Exit(1)
+	}
+
+	_ = storage //to be deleted
+
+	router := chi.NewRouter()
+
+	router.Use(middleware.RequestID)
 
 	//run server
 }
