@@ -3,8 +3,10 @@ package main
 import (
 	"fmt"
 	"log/slog"
+	"net/http"
 	"os"
 	"url-shortener/internals/config"
+	"url-shortener/internals/http-server/handlers/url/save"
 	"url-shortener/internals/http-server/logger"
 	"url-shortener/internals/lib/logger/handlers/slogpretty"
 	"url-shortener/internals/storage/sqlite"
@@ -39,8 +41,26 @@ func main() {
 
 	router.Use(middleware.RequestID)
 	router.Use(logger.New(log))
-	router.Use(middleware.Recoverer) //if panice in handler - stop panic
+	router.Use(middleware.Recoverer) //if panic in handler - stop panic
 	router.Use(middleware.URLFormat) //nice urls in router.Get("/article/{id}"), cann access to params
+
+	router.Post("/url", save.New(log, storage))
+
+	log.Info("starting server", "address", cfg.Addr)
+
+	srv := http.Server{
+		Addr:         cfg.Addr,
+		Handler:      router,
+		ReadTimeout:  cfg.Timeout,
+		WriteTimeout: cfg.Timeout,
+		IdleTimeout:  cfg.IdleTimeout,
+	}
+
+	if err := srv.ListenAndServe(); err != nil {
+		log.Error("failed to start server", "err", err)
+	}
+
+	log.Error("server has stopped")
 
 	//run server
 }
