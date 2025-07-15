@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"url-shortener/internals/storage"
 
 	"github.com/mattn/go-sqlite3"
 	_ "github.com/mattn/go-sqlite3" // _ init driver, because we don't use lib explicitly
@@ -38,7 +39,7 @@ func New(storagePath string) (*Storage, error) {
 		CREATE TABLE IF NOT EXISTS url(
 			id INTEGER PRIMARY KEY,
 			alias TEXT NOT NULL UNIQUE,
-			url TEXT NOT NULL);
+			url TEXT NOT NULL UNIQUE);
 		CREATE INDEX IF NOT EXISTS idx_alias ON url(alias);
 	`)
 	if err != nil {
@@ -66,7 +67,7 @@ func (s *Storage) SaveURL(urlToSave, alias string) (int64, error) { //(lastInser
 	res, err := stmt.Exec(alias, urlToSave)
 	if err != nil {
 		if sqliteErr, ok := err.(sqlite3.Error); ok && sqliteErr.ExtendedCode == sqlite3.ErrConstraintUnique {
-			return -1, fmt.Errorf("%s: %w", fn, StorageErrAlreadyExists{}) // url already exists in database
+			return -1, fmt.Errorf("%s: %w", fn, storage.ErrURLExists) // url already exists in database
 		}
 
 		return -1, fmt.Errorf("%s: %w", fn, err)
@@ -95,11 +96,33 @@ func (s *Storage) GetURL(alias string) (string, error) {
 	err = row.Scan(&urlToReturn)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return "", fmt.Errorf("%s: %w", fn, StorageErrNoSuchAlias{})
+			return "", fmt.Errorf("%s: %w", fn, storage.ErrURLNotFound)
 		}
 
 		return "", fmt.Errorf("%s: %w", fn, err)
 	}
 
 	return urlToReturn, nil
+}
+
+func (s *Storage) DeleteURL(alias string) (int64, error) { // (rowsAffected)
+	const fn = "storage.sqlite.deleteurl"
+
+	stmt, err := s.db.Prepare("DELETE FROM url WHERE alias=?;")
+	if err != nil {
+		return 0, fmt.Errorf("%s: %w", fn, err)
+	}
+	defer stmt.Close()
+
+	res, err := stmt.Exec(alias)
+	if err != nil {
+		return 0, fmt.Errorf("%s: %w", fn, err)
+	}
+
+	rowsDeleted, err := res.RowsAffected()
+	if err != nil {
+		return 0, fmt.Errorf("%s: %w", fn, err)
+	}
+
+	return rowsDeleted, nil
 }

@@ -6,7 +6,7 @@ import (
 	"net/http"
 	resp "url-shortener/internals/lib/api/response"
 	"url-shortener/internals/lib/random"
-	"url-shortener/internals/storage/sqlite"
+	"url-shortener/internals/storage"
 
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/render"
@@ -70,7 +70,7 @@ func New(log *slog.Logger, urlSaver URLSaver) http.HandlerFunc {
 		}
 
 		id, err := urlSaver.SaveURL(req.URL, alias)
-		if errors.Is(err, sqlite.StorageErrAlreadyExists{}) {
+		if errors.Is(err, storage.ErrURLExists) {
 			log.Info("url already exists", "url", req.URL)
 
 			render.JSON(w, r, resp.Error("url already exists"))
@@ -78,7 +78,7 @@ func New(log *slog.Logger, urlSaver URLSaver) http.HandlerFunc {
 			return
 		}
 		if err != nil {
-			log.Error("failed to add url", "url", "err", err)
+			log.Error("failed to add url", "url", req.URL, "err", err)
 
 			render.JSON(w, r, resp.Error("failed to add url"))
 

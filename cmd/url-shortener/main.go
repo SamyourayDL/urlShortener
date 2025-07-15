@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"os"
 	"url-shortener/internals/config"
+	"url-shortener/internals/http-server/handlers/redirect"
+	deleteHandler "url-shortener/internals/http-server/handlers/url/delete"
 	"url-shortener/internals/http-server/handlers/url/save"
 	"url-shortener/internals/http-server/logger"
 	"url-shortener/internals/lib/logger/handlers/slogpretty"
@@ -35,7 +37,11 @@ func main() {
 		os.Exit(1)
 	}
 
-	_ = storage //to be deleted
+	_, err = storage.DeleteURL("abcdf") //to be deleted
+	if err != nil {
+		log.Error("abcdf wasn't delete", "err", err)
+		os.Exit(1)
+	}
 
 	router := chi.NewRouter()
 
@@ -45,6 +51,8 @@ func main() {
 	router.Use(middleware.URLFormat) //nice urls in router.Get("/article/{id}"), cann access to params
 
 	router.Post("/url", save.New(log, storage))
+	router.Get("/{alias}", redirect.New(log, storage))
+	router.Delete("/{alias}", deleteHandler.New(log, storage))
 
 	log.Info("starting server", "address", cfg.Addr)
 
