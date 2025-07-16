@@ -26,6 +26,7 @@ type Request struct {
 type Response struct {
 	resp.Response
 	Alias string `json:"alias,omitempty"`
+	Url   string `json:"url,omitempty"`
 }
 
 const aliasLength = 6
@@ -62,18 +63,29 @@ func New(log *slog.Logger, urlSaver URLSaver) http.HandlerFunc {
 		}
 
 		alias := req.Alias
+
 		if alias == "" {
 			alias = random.NewRandomString(aliasLength)
 			for url, _ := urlSaver.GetURL(alias); url != ""; {
 				alias = random.NewRandomString(aliasLength)
 			}
+		} else if url, _ := urlSaver.GetURL(alias); url != "" {
+			log.Info("url with received alias already exists", "alias", req.Alias, "url", url)
+
+			render.JSON(w, r, Response{
+				Response: resp.Error("url with sent alias already exists"),
+				Url:      url,
+				Alias:    alias,
+			})
+
+			return
 		}
 
 		id, err := urlSaver.SaveURL(req.URL, alias)
 		if errors.Is(err, storage.ErrURLExists) {
-			log.Info("url already exists", "url", req.URL)
+			log.Info("This url already hadve an alias", "url", req.URL)
 
-			render.JSON(w, r, resp.Error("url already exists"))
+			render.JSON(w, r, resp.Error("this url already have an alias"))
 
 			return
 		}
@@ -90,6 +102,7 @@ func New(log *slog.Logger, urlSaver URLSaver) http.HandlerFunc {
 		render.JSON(w, r, Response{
 			Response: resp.OK(),
 			Alias:    alias,
+			Url:      req.URL,
 		})
 	}
 }

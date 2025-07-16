@@ -15,6 +15,11 @@ type URLDeleter interface {
 	DeleteURL(alias string) (int64, error)
 }
 
+type Response struct {
+	resp.Response
+	RowsDeleted int `json:"rowsDeleted"`
+}
+
 func New(log *slog.Logger, urlDeleter URLDeleter) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		const fn = "internals.handlers.url.delete.New"
@@ -34,7 +39,7 @@ func New(log *slog.Logger, urlDeleter URLDeleter) http.HandlerFunc {
 			return
 		}
 
-		_, err := urlDeleter.DeleteURL(alias)
+		rowsDeleted, err := urlDeleter.DeleteURL(alias)
 		if err != nil {
 			log.Error("failed to delete: ", "alias", alias, "err", err)
 
@@ -45,6 +50,9 @@ func New(log *slog.Logger, urlDeleter URLDeleter) http.HandlerFunc {
 
 		log.Info("alias was deleted or abscent", "alias", alias)
 
-		render.JSON(w, r, resp.OK())
+		render.JSON(w, r, Response{
+			Response:    resp.OK(),
+			RowsDeleted: int(rowsDeleted),
+		})
 	}
 }
