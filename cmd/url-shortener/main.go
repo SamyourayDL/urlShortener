@@ -50,9 +50,16 @@ func main() {
 	router.Use(middleware.Recoverer) //if panic in handler - stop panic
 	router.Use(middleware.URLFormat) //nice urls in router.Get("/article/{id}"), cann access to params
 
-	router.Post("/url", save.New(log, storage))
+	router.Route("/url", func(r chi.Router) {
+		r.Use(middleware.BasicAuth("url-shortener", map[string]string{
+			cfg.HttpServer.Username: cfg.HttpServer.Password,
+		}))
+
+		r.Post("/", save.New(log, storage))
+		r.Delete("/{alias}", deleteHandler.New(log, storage))
+	})
+
 	router.Get("/{alias}", redirect.New(log, storage))
-	router.Delete("/{alias}", deleteHandler.New(log, storage))
 
 	log.Info("starting server", "address", cfg.Addr)
 
