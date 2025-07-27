@@ -55,10 +55,10 @@ paths:
           required: true
           schema:
             type: string
-          description: Алиас короткой ссылки
+          description: Short URL alias
       responses:
         '200':
-          description: Удаление выполнено
+          description: Delete call was successfull
           content:
             application/json:
               schema:
@@ -82,18 +82,18 @@ paths:
           required: true
           schema:
             type: string
-          description: Алиас короткой ссылки
+          description: Short URL alias
       responses:
         '302':
-          description: Редирект на оригинальный URL
+          description: Redirect on a base URL
           headers:
             Location:
-              description: URL для перенаправления
+              description: Short URL
               schema:
                 type: string
                 format: uri
         '200':
-          description: Короткая ссылка не найдена
+          description: alias is not in storage
           content:
             application/json:
               schema:
