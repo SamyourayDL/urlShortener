@@ -14,18 +14,6 @@ type Storage struct {
 	db *sql.DB
 }
 
-type StorageErrAlreadyExists struct{}
-
-func (err StorageErrAlreadyExists) Error() string {
-	return "Alias already exists! "
-}
-
-type StorageErrNoSuchAlias struct{}
-
-func (err StorageErrNoSuchAlias) Error() string {
-	return "No such alias! "
-}
-
 func New(storagePath string) (*Storage, error) {
 	const fn = "storage.sqlite.New" //for error messages, to understand where error occured
 	//log.With("in", fn)

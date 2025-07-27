@@ -1,0 +1,113 @@
+openapi: 3.0.3
+info:
+  title: URL Shortener API
+  version: 1.0.0
+  description: API for creating and managing shortened URLs.
+servers:
+  - url: https://api.example.com
+    description: Production server
+paths:
+  /url:
+    post:
+      summary: Создать короткую ссылку
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - url
+                - alias
+              properties:
+                url:
+                  type: string
+                  format: uri
+                  example: "https://en.cppreference.com/w/cpp/container/unordered_set.html"
+                alias:
+                  type: string
+                  example: "asdfmvk"
+      responses:
+        '200':
+          description: Ссылка успешно создана
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - status
+                  - alias
+                  - url
+                properties:
+                  status:
+                    type: string
+                    example: "OK"
+                  alias:
+                    type: string
+                    example: "asdfmvk"
+                  url:
+                    type: string
+                    format: uri
+                    example: "https://en.cppreference.com/w/cpp/container/unordered_set.html"
+  /url/{alias}:
+    delete:
+      summary: Удалить короткую ссылку
+      parameters:
+        - in: path
+          name: alias
+          required: true
+          schema:
+            type: string
+          description: Алиас короткой ссылки
+      responses:
+        '200':
+          description: Удаление выполнено
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - status
+                  - rowsDeleted
+                properties:
+                  status:
+                    type: string
+                    example: "OK"
+                  rowsDeleted:
+                    type: integer
+                    example: 1
+  /{alias}:
+    get:
+      summary: Перенаправить по короткому URL
+      parameters:
+        - in: path
+          name: alias
+          required: true
+          schema:
+            type: string
+          description: Алиас короткой ссылки
+      responses:
+        '302':
+          description: Редирект на оригинальный URL
+          headers:
+            Location:
+              description: URL для перенаправления
+              schema:
+                type: string
+                format: uri
+        '404':
+          description: Короткая ссылка не найдена
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - status
+                  - error
+                properties:
+                  status:
+                    type: string
+                    example: "Error"
+                  error:
+                    type: string
+                    example: "url with such alias not found: asdfmvkdsf"
